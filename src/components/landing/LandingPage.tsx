@@ -85,6 +85,15 @@ export function LandingPage() {
             href="https://www.instagram.com/gabbriosostudio/"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(
+                "https://www.instagram.com/gabbriosostudio/",
+                "_blank",
+                "noopener,noreferrer",
+              );
+            }}
           >
             by Gab Brioso Studio
           </a>

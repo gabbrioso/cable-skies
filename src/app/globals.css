@@ -284,20 +284,37 @@ textarea {
 }
 
 .landing-credit {
-  margin-top: 1.25rem;
+  position: relative;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.1rem;
+  padding: 0.7rem 1.1rem;
   font-family: var(--font-body);
   font-size: clamp(0.95rem, 2.2vw, 1.25rem);
   letter-spacing: -0.02em;
   line-height: 1.2;
-  color: rgba(255, 255, 255, 0.72);
-  text-decoration: none;
-  transition: color 0.2s ease;
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
 .landing-credit:hover,
 .landing-credit:focus-visible {
   color: #fff;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: #fff;
+}
+
+/* Stay visible + easy to hit when CABLE / SKIES expand */
+.landing-title-block:hover .landing-credit,
+.landing-title-block:focus-within .landing-credit {
+  margin-top: 1.35rem;
 }
 
 .landing-title {
