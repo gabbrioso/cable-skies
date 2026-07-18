@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cable Skies
 
-## Getting Started
+Interactive artwork mapping suspended electrical cables against the sky. Explore a living map of geotagged photos, contribute your own, and enter a **Three.js** wire spine where place runs along X and cable density thickens the strands.
 
-First, run the development server:
+## Local setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local
+npm run ingest          # convert assets/*.HEIC → JPEG, score density, seed SQLite
+npm run dev             # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing (hover title → Start) |
+| `/map` | Living map |
+| `/spine` | Three.js / R3F interactive wire spine |
+| `/admin` | Moderate uploads (password from `ADMIN_PASSWORD`) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run ingest` — seed from `assets/`
+- `npm run db:init` — create empty SQLite DB
+- `npm run migrate:supabase` — push local data to Supabase (see [DEPLOY.md](DEPLOY.md))
 
-## Learn More
+## Stack
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js (App Router) + TypeScript
+- MapLibre GL (OpenFreeMap line basemap + dither sky)
+- Amstelvar (headings/CTAs) + Bellefair (body)
+- **three.js** via `@react-three/fiber` + `@react-three/drei` on `/spine`
+- SQLite + local `data/` storage (local-first)
+- Supabase adapters ready for free production hosting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Thesis
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The more wires cut the sky, the less of it remains a common good.
