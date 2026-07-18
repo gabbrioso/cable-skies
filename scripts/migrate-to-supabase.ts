@@ -13,10 +13,14 @@
  * then writes through the Supabase adapters.
  */
 
+import "dotenv/config";
+import { config as loadEnv } from "dotenv";
 import fs from "fs";
 import path from "path";
 import { sqliteDb } from "../src/lib/db/sqlite";
 import { DATA_DIR } from "../src/lib/paths";
+
+loadEnv({ path: ".env.local", override: true });
 
 async function main() {
   if (process.env.STORAGE_BACKEND !== "supabase") {

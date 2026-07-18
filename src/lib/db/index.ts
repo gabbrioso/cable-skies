@@ -1,4 +1,3 @@
-import { sqliteDb } from "@/lib/db/sqlite";
 import type { Photo, PhotoInput, PhotoStatus, RouteMeta } from "@/lib/types";
 
 export interface DbAdapter {
@@ -12,7 +11,9 @@ export interface DbAdapter {
   setRouteMeta(meta: Omit<RouteMeta, "id" | "updatedAt">): Promise<RouteMeta>;
 }
 
-function localAdapter(): DbAdapter {
+async function localAdapter(): Promise<DbAdapter> {
+  // Dynamic import keeps better-sqlite3 out of the Vercel/supabase bundle.
+  const { sqliteDb } = await import("@/lib/db/sqlite");
   return {
     listPhotos: async (status) => sqliteDb.listPhotos(status),
     getPhoto: async (id) => sqliteDb.getPhoto(id),
