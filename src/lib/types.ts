@@ -38,6 +38,8 @@ export interface PhotoInput {
 
 export interface DensityScore {
   skyRatio: number;
+  /** Fraction of sky-like pixels in the upper half (looking-up cue) */
+  upperSkyRatio: number;
   cableDensity: number;
   tangle: number;
 }

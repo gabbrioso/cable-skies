@@ -165,8 +165,10 @@ export function CableMap({
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.originalUrl || photo.url || photo.thumbUrl}
+                        src={photo.thumbUrl || photo.url}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         draggable={false}
                       />
                       <span className="photo-marker-ring" />
@@ -205,11 +207,16 @@ export function CableMap({
       {uploadOpen && (
         <UploadPanel
           pendingPin={pendingPin}
+          pinMode={pinMode}
           onRequestPin={() => {
             setPinMode(true);
             setPendingPin(null);
           }}
           onClearPin={() => setPendingPin(null)}
+          onCancelPin={() => {
+            setPinMode(false);
+            setPendingPin(null);
+          }}
           onClose={() => {
             setUploadOpen(false);
             setPinMode(false);
@@ -218,6 +225,7 @@ export function CableMap({
             await loadPhotos();
             setSelected(photo);
             setUploadOpen(false);
+            setPinMode(false);
             setPendingPin(null);
             setViewState((v) => ({
               ...v,

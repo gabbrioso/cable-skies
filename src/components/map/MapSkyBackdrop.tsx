@@ -215,8 +215,11 @@ export function MapSkyBackdrop({
     let raf = 0;
     const t0 = performance.now();
 
+    const isNarrow = () => window.matchMedia("(max-width: 720px)").matches;
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      // Cap DPR harder on phones (iPhone 12 and lower) to cut fill-rate cost
+      const dprCap = isNarrow() ? 1 : 1.5;
+      const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
       const w = Math.floor(canvas.clientWidth * dpr);
       const h = Math.floor(canvas.clientHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) {
@@ -226,32 +229,48 @@ export function MapSkyBackdrop({
       }
     };
 
+    let lastDraw = 0;
     const frame = (now: number) => {
-      resize();
-      const t = (now - t0) / 1000;
-      const v = viewRef.current;
+      // ~30fps on narrow screens; full rate on desktop
+      const minDelta = isNarrow() ? 32 : 0;
+      if (now - lastDraw >= minDelta) {
+        lastDraw = now;
+        resize();
+        const t = (now - t0) / 1000;
+        const v = viewRef.current;
 
-      mouseSmooth.x += (mouseTarget.x - mouseSmooth.x) * 0.08;
-      mouseSmooth.y += (mouseTarget.y - mouseSmooth.y) * 0.08;
+        mouseSmooth.x += (mouseTarget.x - mouseSmooth.x) * 0.08;
+        mouseSmooth.y += (mouseTarget.y - mouseSmooth.y) * 0.08;
 
-      // Mercator-ish pan so flying the map drifts the cloud deck
-      const panX = ((v.longitude + 180) / 360) * 24;
-      const panY = ((90 - v.latitude) / 180) * 14;
+        // Mercator-ish pan so flying the map drifts the cloud deck
+        const panX = ((v.longitude + 180) / 360) * 24;
+        const panY = ((90 - v.latitude) / 180) * 14;
 
-      gl.uniform1f(uTime, t);
-      gl.uniform2f(uResolution, canvas.width, canvas.height);
-      gl.uniform2f(uPan, panX, panY);
-      gl.uniform1f(uZoom, v.zoom);
-      gl.uniform2f(uMouse, mouseSmooth.x, mouseSmooth.y);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
+        gl.uniform1f(uTime, t);
+        gl.uniform2f(uResolution, canvas.width, canvas.height);
+        gl.uniform2f(uPan, panX, panY);
+        gl.uniform1f(uZoom, v.zoom);
+        gl.uniform2f(uMouse, mouseSmooth.x, mouseSmooth.y);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
       raf = requestAnimationFrame(frame);
     };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (!raf) {
+        raf = requestAnimationFrame(frame);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     raf = requestAnimationFrame(frame);
 
     return () => {
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pointermove", onMove);
       gl.deleteProgram(prog);
       gl.deleteShader(vs);

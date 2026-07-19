@@ -2,37 +2,16 @@
 
 import Link from "next/link";
 import { MapSkyBackdrop } from "@/components/map/MapSkyBackdrop";
-import { useEffect, useState } from "react";
 
 const LANDING_COPY =
   "Cable Skies is an interactive artwork that maps the electrical wires suspended above the city, turning overlooked infrastructure into a measure of how much sky remains shared. Through geotagged photographs, each location is scored for cable density, visual entanglement, and open sky, then translated into a living map and a three-dimensional cable spine. The denser the wires, the more the sky appears divided, occupied, and withdrawn from the public commons.";
 
-/** Slow orbital drift so landing clouds keep moving without a map */
-function useLandingView() {
-  const [view, setView] = useState({
-    longitude: 121.08,
-    latitude: 14.58,
-    zoom: 11.2,
-  });
-
-  useEffect(() => {
-    let raf = 0;
-    const t0 = performance.now();
-    const tick = (now: number) => {
-      const t = (now - t0) / 1000;
-      setView({
-        longitude: 121.08 + Math.sin(t * 0.03) * 0.12,
-        latitude: 14.58 + Math.cos(t * 0.022) * 0.06,
-        zoom: 11.2 + Math.sin(t * 0.015) * 0.15,
-      });
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return view;
-}
+/** Static view — cloud motion comes from the shader clock, not React state. */
+const LANDING_VIEW = {
+  longitude: 121.08,
+  latitude: 14.58,
+  zoom: 11.2,
+};
 
 /** Figma 1:4 / 2:19 — quatrefoil cloud outline Start button */
 function CloudStartButton() {
@@ -60,14 +39,12 @@ function CloudStartButton() {
  * Hover: CABLE ↑ / SKIES ↓ reveal cloud Start + project description.
  */
 export function LandingPage() {
-  const view = useLandingView();
-
   return (
     <main className="landing">
       <MapSkyBackdrop
-        longitude={view.longitude}
-        latitude={view.latitude}
-        zoom={view.zoom}
+        longitude={LANDING_VIEW.longitude}
+        latitude={LANDING_VIEW.latitude}
+        zoom={LANDING_VIEW.zoom}
       />
 
       <div className="landing-stage">
@@ -80,23 +57,28 @@ export function LandingPage() {
             </span>
             <span className="landing-word landing-word--skies">SKIES</span>
           </h1>
-          <a
-            className="landing-credit"
-            href="https://www.instagram.com/gabbriosostudio/"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.open(
-                "https://www.instagram.com/gabbriosostudio/",
-                "_blank",
-                "noopener,noreferrer",
-              );
-            }}
-          >
-            by Gab Brioso Studio
-          </a>
+          <div className="landing-credit-block">
+            <a
+              className="landing-credit"
+              href="https://www.instagram.com/gabbriosostudio/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.open(
+                  "https://www.instagram.com/gabbriosostudio/",
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+            >
+              by Gab Brioso Studio
+            </a>
+            <p className="landing-desktop-hint">
+              Open in Desktop for the best experience.
+            </p>
+          </div>
         </div>
       </div>
     </main>

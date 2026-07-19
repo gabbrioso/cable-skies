@@ -20,6 +20,9 @@ export async function scoreDensity(imageBuffer: Buffer): Promise<DensityScore> {
   const total = w * h;
 
   let skyCount = 0;
+  let upperSkyCount = 0;
+  let upperTotal = 0;
+  const midY = Math.floor(h * 0.5);
   const isSky = new Uint8Array(total);
 
   for (let i = 0; i < total; i++) {
@@ -31,19 +34,24 @@ export async function scoreDensity(imageBuffer: Buffer): Promise<DensityScore> {
     const min = Math.min(r, g, b);
     const brightness = (r + g + b) / 3;
     const saturation = max === 0 ? 0 : (max - min) / max;
+    const y = Math.floor(i / w);
 
     // Sky: bright, low-mid saturation, blue-leaning or pale grey
     const blueLean = b >= r * 0.9 && b >= g * 0.85;
     const pale = brightness > 140 && saturation < 0.35;
     const blueSky = brightness > 100 && blueLean && b > 110;
 
+    if (y < midY) upperTotal++;
+
     if (pale || blueSky) {
       isSky[i] = 1;
       skyCount++;
+      if (y < midY) upperSkyCount++;
     }
   }
 
   const skyRatio = skyCount / total;
+  const upperSkyRatio = upperTotal > 0 ? upperSkyCount / upperTotal : 0;
 
   // Sobel-ish edge magnitude on luminance
   const lum = new Float32Array(total);
@@ -104,6 +112,7 @@ export async function scoreDensity(imageBuffer: Buffer): Promise<DensityScore> {
 
   return {
     skyRatio: round4(skyRatio),
+    upperSkyRatio: round4(upperSkyRatio),
     cableDensity: round4(combined),
     tangle: round4(tangle),
   };

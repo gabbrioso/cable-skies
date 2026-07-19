@@ -1,20 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { ApiPhoto } from "@/components/map/CableMap";
+import { prepareUploadFile } from "@/lib/images/prepare-upload";
 
 interface UploadPanelProps {
   pendingPin: { lat: number; lng: number } | null;
+  pinMode?: boolean;
   onRequestPin: () => void;
   onClearPin: () => void;
+  onCancelPin?: () => void;
   onClose: () => void;
   onUploaded: (photo: ApiPhoto) => void;
 }
 
 export function UploadPanel({
   pendingPin,
+  pinMode = false,
   onRequestPin,
   onClearPin,
+  onCancelPin,
   onClose,
   onUploaded,
 }: UploadPanelProps) {
@@ -24,6 +30,7 @@ export function UploadPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsPin, setNeedsPin] = useState(false);
+  const [archiveFull, setArchiveFull] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,40 +41,119 @@ export function UploadPanel({
 
     setBusy(true);
     setError(null);
-
-    const body = new FormData();
-    body.append("file", file);
-    // Place name is the primary label; server fills from GPS if left blank
-    body.append("placeName", placeName.trim());
-    body.append("note", note.trim());
-    if (pendingPin) {
-      body.append("lat", String(pendingPin.lat));
-      body.append("lng", String(pendingPin.lng));
-    }
+    setArchiveFull(false);
 
     try {
+      const prepared = await prepareUploadFile(file);
+      const body = new FormData();
+      body.append("file", prepared.file);
+      body.append("placeName", placeName.trim());
+      body.append("note", note.trim());
+
+      const lat = pendingPin?.lat ?? prepared.lat;
+      const lng = pendingPin?.lng ?? prepared.lng;
+      if (lat != null && lng != null) {
+        body.append("lat", String(lat));
+        body.append("lng", String(lng));
+      }
+
       const res = await fetch("/api/photos", { method: "POST", body });
-      const data = await res.json();
+      let data: {
+        error?: string;
+        needsPin?: boolean;
+        code?: string;
+        photo?: ApiPhoto;
+      } = {};
+      try {
+        data = await res.json();
+      } catch {
+        if (res.status === 413) {
+          setError("Photo too large for the server. Try a smaller image.");
+          return;
+        }
+        setError("Upload failed — please try again.");
+        return;
+      }
+
+      if (res.status === 507 || data.code === "archive_full") {
+        setArchiveFull(true);
+        return;
+      }
+
+      if (data.code === "not_sky") {
+        setError(
+          data.error ||
+            "This doesn’t look like a sky photo. Please upload a photo of the sky — with or without overhead cables.",
+        );
+        return;
+      }
 
       if (res.status === 422 && data.needsPin) {
         setNeedsPin(true);
-        setError("This photo has no GPS. Drop a pin on the map, then submit again.");
-        setBusy(false);
+        setError(
+          "This photo has no GPS. Tap “Drop pin on map”, place it, then submit again.",
+        );
         return;
       }
 
       if (!res.ok) {
         setError(data.error || "Upload failed");
-        setBusy(false);
         return;
       }
 
-      onUploaded(data.photo as ApiPhoto);
-    } catch {
-      setError("Network error");
+      if (!data.photo) {
+        setError("Upload failed");
+        return;
+      }
+
+      onUploaded(data.photo);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setBusy(false);
     }
+  }
+
+  if (archiveFull) {
+    return (
+      <div className="upload-panel upload-panel--void upload-panel--full" role="dialog">
+        <button type="button" className="upload-close" onClick={onClose}>
+          Close
+        </button>
+        <h2>The archive is full</h2>
+        <p className="upload-lead">
+          Thank you for participating in Cable Skies. The photo database has
+          reached its limit for now.
+        </p>
+        <p className="upload-lead upload-lead--soft">
+          This is a non-funded project, so storage has to stay modest — that is
+          why limits like this exist. Your interest still means a lot.
+        </p>
+        <div className="upload-full-actions">
+          <Link href="/spine" className="btn-mono" onClick={onClose}>
+            View the cable spine
+          </Link>
+          <Link href="/map" className="btn-mono btn-mono-ghost" onClick={onClose}>
+            Explore the map
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (pinMode) {
+    return (
+      <div className="upload-panel upload-panel--void upload-panel--pinning" role="dialog">
+        <p className="upload-pinning-msg">Tap the map to place your photo</p>
+        <button
+          type="button"
+          className="btn-mono btn-mono-ghost"
+          onClick={onCancelPin ?? onClearPin}
+        >
+          Cancel pin
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -77,17 +163,21 @@ export function UploadPanel({
       </button>
       <h2>Contribute a sky</h2>
       <p className="upload-lead">
-        Upload a photo of suspended cables. The place name becomes its label on
-        the map — leave blank to fill from GPS.
+        Upload a photo of suspended cables. Photos are resized on your device
+        for a reliable mobile upload. Leave place name blank to fill from GPS.
       </p>
 
       <form onSubmit={submit}>
         <label className="file-label">
-          <span>{file ? file.name : "Choose JPEG, PNG, WebP, or HEIC"}</span>
+          <span>{file ? file.name : "Choose or take a photo"}</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              setFile(e.target.files?.[0] ?? null);
+              setError(null);
+              setNeedsPin(false);
+            }}
           />
         </label>
 
@@ -115,13 +205,22 @@ export function UploadPanel({
           <div className="pin-controls">
             {pendingPin ? (
               <p>
-                Pin set at {pendingPin.lat.toFixed(5)}, {pendingPin.lng.toFixed(5)}{" "}
-                <button type="button" className="btn-mono btn-mono-ghost" onClick={onClearPin}>
+                Pin set at {pendingPin.lat.toFixed(5)},{" "}
+                {pendingPin.lng.toFixed(5)}{" "}
+                <button
+                  type="button"
+                  className="btn-mono btn-mono-ghost"
+                  onClick={onClearPin}
+                >
                   Clear
                 </button>
               </p>
             ) : (
-              <button type="button" className="btn-mono btn-mono-ghost" onClick={onRequestPin}>
+              <button
+                type="button"
+                className="btn-mono btn-mono-ghost"
+                onClick={onRequestPin}
+              >
                 Drop pin on map
               </button>
             )}
@@ -131,7 +230,7 @@ export function UploadPanel({
         {error && <p className="form-error">{error}</p>}
 
         <button type="submit" className="btn-mono" disabled={busy}>
-          {busy ? "Dithering…" : "Upload"}
+          {busy ? "Preparing…" : "Upload"}
         </button>
       </form>
     </div>

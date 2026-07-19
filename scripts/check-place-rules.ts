@@ -10,6 +10,7 @@ import {
   extractCity,
   isCrediblePlaceName,
 } from "../src/lib/geo/city";
+import { isLikelySkyPhoto } from "../src/lib/density/sky-photo";
 
 const cases: Array<{
   placeName: string;
@@ -50,9 +51,53 @@ for (const city of ["Pasig", "Cainta", "Taytay", "Quezon City"] as const) {
   }
 }
 
+const skyCases: Array<{
+  label: string;
+  ok: boolean;
+  score: {
+    skyRatio: number;
+    upperSkyRatio: number;
+    cableDensity: number;
+    tangle: number;
+  };
+}> = [
+  {
+    label: "open sky",
+    ok: true,
+    score: { skyRatio: 0.7, upperSkyRatio: 0.8, cableDensity: 0.05, tangle: 0.02 },
+  },
+  {
+    label: "cable sky",
+    ok: true,
+    score: { skyRatio: 0.22, upperSkyRatio: 0.28, cableDensity: 0.45, tangle: 0.3 },
+  },
+  {
+    label: "indoor selfie",
+    ok: false,
+    score: { skyRatio: 0.04, upperSkyRatio: 0.05, cableDensity: 0.1, tangle: 0.08 },
+  },
+  {
+    label: "food / ground",
+    ok: false,
+    score: { skyRatio: 0.02, upperSkyRatio: 0.01, cableDensity: 0.2, tangle: 0.15 },
+  },
+];
+
+for (const c of skyCases) {
+  const ok = isLikelySkyPhoto(c.score);
+  if (ok !== c.ok) {
+    failed += 1;
+    console.error(
+      `FAIL sky "${c.label}": expected ok=${c.ok}, got ${ok}`,
+    );
+  }
+}
+
 if (failed > 0) {
   console.error(`place rules check failed (${failed} errors)`);
   process.exit(1);
 }
 
-console.log(`place rules ok (${cases.length} cases)`);
+console.log(
+  `place rules ok (${cases.length} place + ${skyCases.length} sky cases)`,
+);
