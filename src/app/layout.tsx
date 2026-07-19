@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Bellefair } from "next/font/google";
 import "./globals.css";
@@ -26,6 +26,13 @@ export const metadata: Metadata = {
   title: "Cable Skies",
   description:
     "An interactive artwork mapping how suspended cables divide the sky — and who still gets to see it.",
+};
+
+/** viewport-fit=cover so safe-area insets work on notched iPhones */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

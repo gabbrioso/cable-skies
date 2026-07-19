@@ -47,9 +47,12 @@ export function EndOfCableTracker({
     const isMobile = size.width <= 720;
     if (isMobile) sx = size.width * 0.5;
 
-    const padX = Math.max(12, size.width * 0.03);
-    const padTop = Math.max(72, size.height * 0.1);
-    const padBottom = Math.max(16, size.height * 0.04);
+    const root = getComputedStyle(document.documentElement);
+    const safeTop = parseFloat(root.getPropertyValue("--safe-top")) || 0;
+    const safeBottom = parseFloat(root.getPropertyValue("--safe-bottom")) || 0;
+    const padX = Math.max(16, size.width * 0.04);
+    const padTop = Math.max(88, size.height * 0.12, 72 + safeTop);
+    const padBottom = Math.max(24, size.height * 0.05, 16 + safeBottom);
     const halfW = el.offsetWidth * 0.5;
     const h = el.offsetHeight;
 

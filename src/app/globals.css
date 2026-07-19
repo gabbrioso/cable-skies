@@ -16,6 +16,29 @@
   --font-body: var(--font-bellefair), "Times New Roman", serif;
   --font-cta: var(--font-amstelvar), "Times New Roman", serif;
   --dither-btn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect fill='%23fff' width='1' height='1'/%3E%3Crect fill='%23fff' x='2' y='2' width='1' height='1'/%3E%3C/svg%3E");
+
+  /* Mobile-safe full viewport (dvh avoids iOS 100vh chrome clipping) */
+  --app-w: 100vw;
+  --app-h: 100vh;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --modal-pad-x: max(1.25rem, var(--safe-left), var(--safe-right));
+  --modal-pad-y: max(1.5rem, var(--safe-top), var(--safe-bottom));
+  --nav-clearance: calc(5.75rem + var(--safe-top));
+}
+
+@supports (width: 100dvw) {
+  :root {
+    --app-w: 100dvw;
+  }
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-h: 100dvh;
+  }
 }
 
 @theme inline {
@@ -32,6 +55,10 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  min-height: var(--app-h);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--sky-deep);
   color: var(--text);
   font-family: var(--font-body);
@@ -499,7 +526,8 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 40px;
+  padding: max(40px, var(--safe-top)) max(40px, var(--safe-right)) 40px
+    max(40px, var(--safe-left));
   pointer-events: none;
   background: linear-gradient(
     180deg,
@@ -562,36 +590,51 @@ textarea {
 
 @media (max-width: 720px) {
   .site-nav {
-    padding: 1rem;
+    padding: max(0.9rem, var(--safe-top)) max(0.9rem, var(--safe-right)) 0.85rem
+      max(0.9rem, var(--safe-left));
     align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .site-nav-header {
-    gap: 0.75rem;
+    gap: 0.55rem;
     flex-direction: column;
     align-items: flex-start;
+    max-width: min(52vw, 11.5rem);
   }
 
   .site-nav-logo {
-    font-size: 28px;
+    font-size: 26px;
   }
 
   .site-nav-blurb {
-    width: min(193px, 42vw);
+    width: 100%;
+    max-width: 11rem;
     font-size: 11px;
   }
 
+  .site-nav-actions {
+    gap: 10px;
+    max-width: calc(100% - 0.25rem);
+  }
+
   .btn-circle {
-    width: 64px;
-    height: 64px;
+    width: 58px;
+    height: 58px;
+  }
+
+  .btn-circle-label {
+    font-size: 0.62rem;
   }
 }
 
 /* —— Map (void / Anadol) —— */
 .map-shell {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  width: var(--app-w);
+  height: var(--app-h);
+  max-width: 100%;
+  max-height: var(--app-h);
   overflow: hidden;
   background: #000;
 }
@@ -840,9 +883,11 @@ textarea {
 .pin-banner {
   position: absolute;
   left: 50%;
-  bottom: 1.5rem;
+  bottom: max(1.5rem, calc(var(--safe-bottom) + 0.75rem));
   transform: translateX(-50%);
   z-index: 3;
+  max-width: calc(100% - 2rem);
+  text-align: center;
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.55);
   color: #fff;
@@ -858,16 +903,21 @@ textarea {
   position: fixed;
   inset: 0;
   z-index: 40;
+  width: var(--app-w);
+  height: var(--app-h);
+  max-width: 100%;
+  max-height: var(--app-h);
   background: rgba(0, 0, 0, 0.92);
   display: grid;
   place-items: center;
-  padding: clamp(0.5rem, 2vw, 1.25rem);
+  padding: var(--modal-pad-y) var(--modal-pad-x);
+  overflow: hidden;
   animation: map-fade 0.25s ease;
 }
 
 .lightbox-stage {
   width: min(1100px, 100%);
-  max-height: 96vh;
+  max-height: calc(var(--app-h) - (2 * var(--modal-pad-y)));
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -1026,8 +1076,8 @@ textarea {
 
   .lightbox-hero,
   .lightbox-hero img {
-    min-height: 48vh;
-    height: 48vh;
+    min-height: min(42dvh, 42vh);
+    height: min(42dvh, 42vh);
   }
 }
 
@@ -1036,7 +1086,11 @@ textarea {
   right: clamp(1rem, 3vw, 2rem);
   top: clamp(7.5rem, 12vw, 9rem);
   z-index: 9;
-  width: min(360px, calc(100vw - 2rem));
+  width: min(360px, calc(100% - 2rem));
+  max-height: calc(var(--app-h) - var(--nav-clearance) - 1.5rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.28);
   padding: 1.25rem 1.25rem 1.4rem;
@@ -1155,15 +1209,23 @@ textarea {
   position: absolute;
   inset: 0;
   z-index: 30;
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
-  padding: 1.25rem;
+  padding: var(--modal-pad-y) var(--modal-pad-x);
+  box-sizing: border-box;
   background: rgba(0, 0, 0, 0.72);
+  overflow: hidden;
   animation: rise 0.35s ease both;
 }
 
 .upload-success-card {
   width: min(420px, 100%);
+  max-height: calc(var(--app-h) - (2 * var(--modal-pad-y)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.28);
   padding: 1.35rem 1.35rem 1.5rem;
@@ -1237,7 +1299,7 @@ textarea {
 
 /* —— Spine (Three.js) —— */
 .spine-page {
-  min-height: 100vh;
+  min-height: var(--app-h);
   display: flex;
   flex-direction: column;
   background: #000000;
@@ -1247,7 +1309,11 @@ textarea {
 .spine-page--immersive {
   display: block;
   position: relative;
+  width: var(--app-w);
+  max-width: 100%;
+  min-height: var(--app-h);
   background: #000000;
+  overflow-x: hidden;
 }
 
 .spine-scroll-spacer {
@@ -1259,9 +1325,15 @@ textarea {
 
 .spine-sticky-frame {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: var(--app-w);
+  height: var(--app-h);
+  max-width: 100%;
+  max-height: var(--app-h);
   z-index: 1;
   background: #000000;
+  overflow: hidden;
 }
 
 .spine-error {
@@ -1296,14 +1368,15 @@ textarea {
 /* City → image details → overview (bottom-left stack) */
 .spine-side-stack {
   position: absolute;
-  left: 1rem;
-  bottom: 1rem;
+  left: max(1rem, var(--safe-left));
+  bottom: max(1rem, var(--safe-bottom));
   z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0.55rem;
-  width: min(340px, calc(100vw - 2.5rem));
+  width: min(340px, calc(var(--app-w) - 2.5rem - var(--safe-left) - var(--safe-right)));
+  max-width: calc(100% - 5.5rem);
   pointer-events: none;
   transition: gap 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1435,10 +1508,11 @@ textarea {
 
 @media (max-width: 720px) {
   .spine-side-stack {
-    left: 0.5rem;
-    bottom: 0.75rem;
-    width: min(280px, calc(100vw - 1rem));
-    gap: 0.4rem;
+    left: max(0.65rem, var(--safe-left));
+    bottom: max(0.85rem, var(--safe-bottom));
+    width: min(260px, calc(var(--app-w) - 6.5rem - var(--safe-left)));
+    max-width: calc(58vw);
+    gap: 0.35rem;
   }
 
   .spine-city-heading {
@@ -1446,7 +1520,7 @@ textarea {
   }
 
   .spine-overview {
-    height: min(180px, 28vh);
+    height: min(160px, 26dvh, 26vh);
   }
 }
 
@@ -1454,16 +1528,17 @@ textarea {
 .scroll-graph-wrap {
   position: absolute;
   top: auto;
-  right: 1rem;
-  bottom: 1rem;
+  right: max(1rem, var(--safe-right));
+  bottom: max(1rem, var(--safe-bottom));
   transform: none;
   z-index: 6;
   /* Clear fixed top nav (~40px pad + 75px controls + gap) */
-  height: min(calc(100vh - 11.5rem), 620px);
-  max-height: calc(100vh - 11.5rem);
+  height: min(calc(var(--app-h) - 11.5rem), 620px);
+  max-height: calc(var(--app-h) - 11.5rem);
   width: 112px;
   pointer-events: auto;
   transition: opacity 0.4s ease;
+  overflow: visible;
 }
 
 .scroll-graph-wrap.is-end-hidden {
@@ -1562,6 +1637,13 @@ textarea {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);
   font-family: var(--font-anadol), sans-serif;
+  min-width: 0;
+  overflow: visible;
+}
+
+.scroll-graph-legend li {
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .sg-swatch {
@@ -1609,7 +1691,7 @@ textarea {
   transform: translateX(120%);
   z-index: 7;
   width: min(280px, 36vw);
-  max-height: min(calc(100vh - 11.5rem), 620px);
+  max-height: min(calc(var(--app-h) - 11.5rem), 620px);
   overflow: auto;
   pointer-events: none;
   opacity: 0;
@@ -1719,11 +1801,12 @@ textarea {
 
 @media (max-width: 720px) {
   .spine-info-panel {
-    right: 0.75rem;
-    left: 0.75rem;
+    right: max(0.75rem, var(--safe-right));
+    left: max(0.75rem, var(--safe-left));
     width: auto;
     top: auto;
-    bottom: 1rem;
+    bottom: max(1rem, var(--safe-bottom));
+    max-height: calc(var(--app-h) - var(--nav-clearance) - 1.5rem);
     transform: translateY(120%);
   }
 
@@ -1732,18 +1815,43 @@ textarea {
   }
 
   .scroll-graph-wrap {
-    right: 0.5rem;
-    bottom: 0.75rem;
-    width: 64px;
-    height: min(calc(100vh - 10rem), 420px);
-    max-height: calc(100vh - 10rem);
+    /* Stretch between nav and home-indicator — keeps legend fully visible */
+    top: var(--nav-clearance);
+    right: max(0.55rem, var(--safe-right));
+    bottom: max(0.85rem, var(--safe-bottom));
+    width: 96px;
+    height: auto;
+    max-height: none;
+  }
+
+  .scroll-graph {
+    gap: 0.35rem;
+    min-height: 0;
+  }
+
+  .scroll-graph-legend-row {
+    flex-shrink: 0;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding-right: 0.1rem;
+  }
+
+  .scroll-graph-legend {
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+    gap: 0.12rem;
+  }
+
+  .sg-swatch {
+    width: 10px;
+    margin-right: 0.28rem;
   }
 }
 
 .spine-hint {
   position: absolute;
   left: 50%;
-  bottom: 1.25rem;
+  bottom: max(1.25rem, calc(var(--safe-bottom) + 0.5rem));
   transform: translateX(-50%);
   color: var(--muted);
   font-size: 0.8rem;
@@ -1752,6 +1860,8 @@ textarea {
   padding: 0.4rem 0.75rem;
   pointer-events: none;
   transition: opacity 0.35s ease;
+  max-width: calc(100% - 2rem);
+  text-align: center;
 }
 
 .spine-hint.is-hidden {
@@ -2085,23 +2195,41 @@ textarea {
   letter-spacing: 0.04em;
 }
 
+@media (max-width: 720px) {
+  .map-shell--void .maplibregl-ctrl-bottom-right {
+    bottom: max(0.75rem, var(--safe-bottom));
+    right: max(0.5rem, var(--safe-right));
+  }
+}
+
 @media (max-width: 640px) {
   .hero-brand {
     max-width: calc(100% - 2rem);
   }
 
   .upload-panel {
-    left: 1rem;
-    right: 1rem;
+    left: max(1.1rem, var(--safe-left));
+    right: max(1.1rem, var(--safe-right));
     width: auto;
-    top: auto;
-    bottom: 1rem;
-    max-height: min(70vh, 520px);
+    top: var(--nav-clearance);
+    bottom: max(1.25rem, var(--safe-bottom));
+    max-height: none;
+    height: auto;
     overflow-y: auto;
   }
 
   .upload-panel--pinning {
+    top: auto;
+    bottom: max(1.35rem, var(--safe-bottom));
     max-height: none;
-    bottom: 1.25rem;
+  }
+
+  .upload-panel--full {
+    top: var(--nav-clearance);
+  }
+
+  .spine-end-of-cable {
+    width: min(260px, calc(var(--app-w) - 2rem - var(--safe-left) - var(--safe-right)));
+    padding-inline: max(0.75rem, var(--safe-left), var(--safe-right));
   }
 }
