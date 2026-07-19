@@ -1,7 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { useLayoutEffect, useRef } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type SyntheticEvent,
+} from "react";
+import { useRouter } from "next/navigation";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -53,8 +57,10 @@ export function EndOfCableTracker({
     sy = Math.min(size.height - padBottom - h, Math.max(padTop, sy));
 
     el.style.transform = `translate3d(${sx}px, ${sy}px, 0) translate(-50%, 0)`;
-    el.style.opacity = visible && inFront ? "1" : "0";
-    el.style.pointerEvents = visible && inFront ? "auto" : "none";
+    const show = visible && inFront;
+    el.style.opacity = show ? "1" : "0";
+    // Keep hits enabled whenever the CTA is shown — don't let drag steal clicks
+    el.style.pointerEvents = show ? "auto" : "none";
   });
 
   return null;
@@ -66,6 +72,8 @@ interface EndOfCablePanelProps {
 }
 
 export function EndOfCablePanel({ visible, panelRef }: EndOfCablePanelProps) {
+  const router = useRouter();
+
   useLayoutEffect(() => {
     const el = panelRef.current;
     if (!el) return;
@@ -73,11 +81,21 @@ export function EndOfCablePanel({ visible, panelRef }: EndOfCablePanelProps) {
     el.style.pointerEvents = "none";
   }, [panelRef]);
 
+  function goContribute(e: SyntheticEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push("/map?contribute=1");
+  }
+
   return (
     <div
       ref={panelRef}
       className={`spine-end-of-cable${visible ? " is-visible" : ""}`}
       aria-hidden={!visible}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       <h2 className="spine-end-title">
         <span>END OF</span>
@@ -87,13 +105,15 @@ export function EndOfCablePanel({ visible, panelRef }: EndOfCablePanelProps) {
         <p className="spine-end-copy">
           Upload an image of a Cable Sky to extend the Cable Spine
         </p>
-        <Link
+        <a
           href="/map?contribute=1"
           className="spine-end-sky-btn"
           tabIndex={visible ? 0 : -1}
+          onClick={goContribute}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           Add a Sky
-        </Link>
+        </a>
       </div>
     </div>
   );

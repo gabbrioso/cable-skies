@@ -392,6 +392,7 @@ export function SpineScene({
   const [infoOpen, setInfoOpen] = useState(false);
 
   return (
+    <>
     <div
       className="spine-canvas spine-canvas--frame"
       onPointerDown={onPointerDown}
@@ -450,8 +451,6 @@ export function SpineScene({
           />
         </Suspense>
       </Canvas>
-
-      <EndOfCablePanel visible={endVisible} panelRef={endPanelRef} />
 
       <SciencePanel open={infoOpen} onClose={() => setInfoOpen(false)} />
 
@@ -539,5 +538,9 @@ export function SpineScene({
         Scroll to descend · Drag to spin
       </div>
     </div>
+
+    {/* Outside drag-capture frame so Add a Sky can navigate to the map */}
+    <EndOfCablePanel visible={endVisible} panelRef={endPanelRef} />
+    </>
   );
 }

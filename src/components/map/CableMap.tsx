@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Map, {
   Marker,
   NavigationControl,
@@ -31,9 +32,13 @@ export function CableMap({
   initialPhotoId,
   openContribute = false,
 }: CableMapProps) {
+  const searchParams = useSearchParams();
+  const contributeFromUrl = searchParams.get("contribute") === "1";
+  const shouldOpenContribute = openContribute || contributeFromUrl;
+
   const [photos, setPhotos] = useState<ApiPhoto[]>([]);
   const [selected, setSelected] = useState<ApiPhoto | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(openContribute);
+  const [uploadOpen, setUploadOpen] = useState(shouldOpenContribute);
   const [pinMode, setPinMode] = useState(false);
   const [pendingPin, setPendingPin] = useState<{
     lat: number;
@@ -53,8 +58,8 @@ export function CableMap({
   }, []);
 
   useEffect(() => {
-    if (openContribute) setUploadOpen(true);
-  }, [openContribute]);
+    if (shouldOpenContribute) setUploadOpen(true);
+  }, [shouldOpenContribute]);
 
   useEffect(() => {
     loadPhotos().then((list) => {

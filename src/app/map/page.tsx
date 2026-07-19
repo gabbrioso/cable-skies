@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { CableMap } from "@/components/map/CableMap";
 
 export default async function MapPage({
@@ -7,9 +8,13 @@ export default async function MapPage({
 }) {
   const params = await searchParams;
   return (
-    <CableMap
-      initialPhotoId={params.photo ?? null}
-      openContribute={params.contribute === "1"}
-    />
+    <Suspense
+      fallback={<div className="map-shell map-shell--void map-loading">Loading map…</div>}
+    >
+      <CableMap
+        initialPhotoId={params.photo ?? null}
+        openContribute={params.contribute === "1"}
+      />
+    </Suspense>
   );
 }
