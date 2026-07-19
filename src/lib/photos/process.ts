@@ -106,6 +106,25 @@ export async function processPhotoUpload(
     thumbPath = await storage.saveThumb(`${id}-dither-thumb.jpg`, ditherThumb);
     ditherPath = await storage.saveUpload(`${id}-dither.jpg`, ditherFull);
     await storage.saveThumb(`${id}-thumb.jpg`, thumb);
+
+    // Confirm bytes survived storage (catches UTF-8 corruption early)
+    const verify = await storage.read(storagePath);
+    if (
+      !verify ||
+      verify.length < 2 ||
+      verify[0] !== 0xff ||
+      verify[1] !== 0xd8
+    ) {
+      await storage.remove(storagePath);
+      await storage.remove(thumbPath);
+      await storage.remove(ditherPath);
+      await storage.remove(`thumbs/${id}-thumb.jpg`);
+      return {
+        photo: null,
+        needsPin: false,
+        error: "Image storage failed — please try uploading again.",
+      };
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     if (isArchiveFullError(message)) {

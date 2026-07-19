@@ -27,7 +27,18 @@ export function PhotoLightbox({
 
         <figure className="lightbox-hero">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.url} alt={label} />
+          <img
+            src={photo.url || photo.originalUrl || photo.thumbUrl}
+            alt={label}
+            onError={(e) => {
+              const el = e.currentTarget;
+              const fallback =
+                photo.originalUrl && el.src !== photo.originalUrl
+                  ? photo.originalUrl
+                  : photo.thumbUrl;
+              if (fallback && el.src !== fallback) el.src = fallback;
+            }}
+          />
         </figure>
 
         <div className="lightbox-below">

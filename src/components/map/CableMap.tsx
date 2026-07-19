@@ -13,6 +13,7 @@ import { LINE_MAP_STYLE } from "@/lib/map/lineStyle";
 import { MapSkyBackdrop } from "@/components/map/MapSkyBackdrop";
 import { PhotoLightbox } from "@/components/map/PhotoLightbox";
 import { UploadPanel } from "@/components/upload/UploadPanel";
+import { UploadSuccessModal } from "@/components/upload/UploadSuccessModal";
 import { SiteNav } from "@/components/nav/SiteNav";
 import { displayPlaceLabel } from "@/lib/geo/place";
 
@@ -39,6 +40,7 @@ export function CableMap({
   const [photos, setPhotos] = useState<ApiPhoto[]>([]);
   const [selected, setSelected] = useState<ApiPhoto | null>(null);
   const [uploadOpen, setUploadOpen] = useState(shouldOpenContribute);
+  const [successPhoto, setSuccessPhoto] = useState<ApiPhoto | null>(null);
   const [pinMode, setPinMode] = useState(false);
   const [pendingPin, setPendingPin] = useState<{
     lat: number;
@@ -205,11 +207,28 @@ export function CableMap({
         <div className="pin-banner">Click the map to place your photo</div>
       )}
 
-      {selected && (
+      {selected && !successPhoto && (
         <PhotoLightbox photo={selected} onClose={() => setSelected(null)} />
       )}
 
-      {uploadOpen && (
+      {successPhoto && (
+        <UploadSuccessModal
+          photo={successPhoto}
+          onContinue={() => {
+            const photo = successPhoto;
+            setSuccessPhoto(null);
+            setSelected(photo);
+            setViewState((v) => ({
+              ...v,
+              longitude: photo.lng,
+              latitude: photo.lat,
+              zoom: 14,
+            }));
+          }}
+        />
+      )}
+
+      {uploadOpen && !successPhoto && (
         <UploadPanel
           pendingPin={pendingPin}
           pinMode={pinMode}
@@ -228,10 +247,10 @@ export function CableMap({
           }}
           onUploaded={async (photo) => {
             await loadPhotos();
-            setSelected(photo);
             setUploadOpen(false);
             setPinMode(false);
             setPendingPin(null);
+            setSuccessPhoto(photo);
             setViewState((v) => ({
               ...v,
               longitude: photo.lng,
