@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run places:check && next build",
     "start": "next start",
     "lint": "eslint",
     "ingest": "tsx scripts/ingest-assets.ts",
+    "places:check": "tsx scripts/check-place-rules.ts",
+    "places:audit": "tsx scripts/audit-places.ts",
     "places:backfill": "tsx scripts/backfill-places.ts",
+    "photos:delete": "tsx scripts/delete-photos.ts",
     "db:init": "tsx scripts/init-db.ts",
     "setup:supabase": "tsx scripts/setup-supabase.ts",
     "migrate:supabase": "tsx scripts/migrate-to-supabase.ts"

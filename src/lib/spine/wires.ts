@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import type { OrderedPhoto } from "@/lib/route/order";
+import { extractCity } from "@/lib/geo/city";
+
+export { extractCity } from "@/lib/geo/city";
 
 /** Fixed cable pool — all run full spine length; peel count spans 10–80 by density */
 export const CABLE_COUNT_MIN = 10;
@@ -66,15 +69,6 @@ function lerp(a: number, b: number, t: number) {
 function smoothstep(edge0: number, edge1: number, x: number) {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0 || 1)));
   return t * t * (3 - 2 * t);
-}
-
-/** "Pasig Ugong Sky" / "Quezon City Teachers Village Sky" → city */
-export function extractCity(placeName: string | null | undefined): string {
-  if (!placeName?.trim()) return "Unknown";
-  const base = placeName.replace(/\s+Sky$/i, "").trim();
-  if (/^Quezon City\b/i.test(base)) return "Quezon City";
-  const parts = base.split(/\s+/);
-  return parts[0] || "Unknown";
 }
 
 function sampleAlongRoute(

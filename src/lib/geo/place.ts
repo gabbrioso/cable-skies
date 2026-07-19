@@ -3,6 +3,8 @@
  * Canonical format: "{City} {Barangay} Sky" from map coordinates (Nominatim).
  */
 
+import { isCrediblePlaceName } from "@/lib/geo/city";
+
 export interface PlaceFields {
   placeName: string;
   note: string;
@@ -123,9 +125,12 @@ export async function resolvePlaceFields(opts: {
   placeName?: string | null;
   note?: string | null;
 }): Promise<PlaceFields> {
-  const placeName =
-    (opts.placeName && opts.placeName.trim()) ||
-    (await resolvePlaceName(opts.lat, opts.lng));
+  const provided = opts.placeName?.trim() || null;
+  // Keep contributor labels only when they resolve to a real city;
+  // otherwise reverse-geocode from the image GPS (OpenStreetMap Nominatim).
+  const placeName = isCrediblePlaceName(provided)
+    ? provided!
+    : await resolvePlaceName(opts.lat, opts.lng);
   const note =
     (opts.note && opts.note.trim()) ||
     placeholderNote(opts.cableDensity, placeName);
