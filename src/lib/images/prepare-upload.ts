@@ -1,6 +1,7 @@
 /**
  * Prepare a phone/camera photo for POST /api/photos.
- * Vercel Hobby caps request bodies ~4.5MB — compress client-side and keep GPS.
+ * Vercel Hobby caps request bodies ~4.5MB — convert HEIC + compress client-side.
+ * GPS is read from the original file before conversion (EXIF is stripped by canvas).
  */
 
 import exifr from "exifr";
@@ -13,6 +14,20 @@ export interface PreparedUpload {
   file: File;
   lat: number | null;
   lng: number | null;
+}
+
+export function isHeicLike(file: File): boolean {
+  const type = (file.type || "").toLowerCase();
+  const name = file.name.toLowerCase();
+  if (
+    type.includes("heic") ||
+    type.includes("heif") ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 async function readGps(file: File): Promise<{ lat: number | null; lng: number | null }> {
@@ -32,8 +47,34 @@ async function readGps(file: File): Promise<{ lat: number | null; lng: number | 
   }
 }
 
-function loadImageBitmap(file: File): Promise<ImageBitmap> {
-  return createImageBitmap(file);
+/** Sniff ISO-BMFF HEIC/HEIF when the phone omits a useful MIME type */
+async function sniffHeic(file: File): Promise<boolean> {
+  if (isHeicLike(file)) return true;
+  try {
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    if (head.length < 12) return false;
+    const brand = String.fromCharCode(...head.slice(8, 12));
+    const ftyp = String.fromCharCode(...head.slice(4, 8));
+    return (
+      ftyp === "ftyp" &&
+      /^(heic|heix|hevc|hevx|mif1|msf1|heim|heis)/i.test(brand)
+    );
+  } catch {
+    return false;
+  }
+}
+
+async function heicToJpegFile(file: File): Promise<File> {
+  const heic2any = (await import("heic2any")).default;
+  // Aggressive quality so large iPhone HEICs fit under the Vercel body cap
+  const result = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.7,
+  });
+  const blob = Array.isArray(result) ? result[0] : result;
+  const base = file.name.replace(/\.[^.]+$/, "") || "sky";
+  return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
 }
 
 function canvasToBlob(
@@ -45,8 +86,7 @@ function canvasToBlob(
   });
 }
 
-async function compressToJpeg(file: File): Promise<File> {
-  // Already small enough and JPEG — skip work
+async function compressDecoded(file: File): Promise<File> {
   if (
     file.size <= MAX_UPLOAD_BYTES &&
     (file.type === "image/jpeg" || /\.jpe?g$/i.test(file.name))
@@ -56,12 +96,11 @@ async function compressToJpeg(file: File): Promise<File> {
 
   let bitmap: ImageBitmap;
   try {
-    bitmap = await loadImageBitmap(file);
+    bitmap = await createImageBitmap(file);
   } catch {
-    // HEIC/unknown — if under the wire limit, send as-is for server convert
     if (file.size <= MAX_UPLOAD_BYTES) return file;
     throw new Error(
-      "This photo is too large for mobile upload. Try a smaller JPEG, or open Desktop.",
+      "Could not prepare this photo on your device. Try again, or use a smaller image.",
     );
   }
 
@@ -82,7 +121,7 @@ async function compressToJpeg(file: File): Promise<File> {
 
   let quality = 0.82;
   let blob = await canvasToBlob(canvas, quality);
-  while (blob && blob.size > MAX_UPLOAD_BYTES && quality > 0.45) {
+  while (blob && blob.size > MAX_UPLOAD_BYTES && quality > 0.4) {
     quality -= 0.08;
     blob = await canvasToBlob(canvas, quality);
   }
@@ -97,9 +136,27 @@ async function compressToJpeg(file: File): Promise<File> {
   return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
 }
 
-/** Extract GPS from the original, then compress for the network. */
+/**
+ * Convert HEIC/HEIF (and other phone formats) to a network-safe JPEG under ~3.2MB.
+ */
 export async function prepareUploadFile(file: File): Promise<PreparedUpload> {
   const gps = await readGps(file);
-  const prepared = await compressToJpeg(file);
+  let working = file;
+
+  if (await sniffHeic(file)) {
+    try {
+      working = await heicToJpegFile(file);
+    } catch {
+      // Server can still decode small HEICs via heic-convert
+      if (file.size <= MAX_UPLOAD_BYTES) {
+        return { file, lat: gps.lat, lng: gps.lng };
+      }
+      throw new Error(
+        "Could not prepare this HEIC photo. On iPhone: Settings → Camera → Formats → Most Compatible, or try again.",
+      );
+    }
+  }
+
+  const prepared = await compressDecoded(working);
   return { file: prepared, lat: gps.lat, lng: gps.lng };
 }

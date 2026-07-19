@@ -163,16 +163,17 @@ export function UploadPanel({
       </button>
       <h2>Contribute a sky</h2>
       <p className="upload-lead">
-        Upload a photo of suspended cables. Photos are resized on your device
-        for a reliable mobile upload. Leave place name blank to fill from GPS.
+        Upload a sky photo — HEIC from iPhone is fine. We convert and resize on
+        your device for a reliable upload. Leave place name blank to fill from
+        GPS.
       </p>
 
       <form onSubmit={submit}>
         <label className="file-label">
-          <span>{file ? file.name : "Choose or take a photo"}</span>
+          <span>{file ? file.name : "Choose or take a photo (HEIC OK)"}</span>
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+            accept="image/*,.heic,.heif,image/heic,image/heif"
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null);
               setError(null);
@@ -230,7 +231,7 @@ export function UploadPanel({
         {error && <p className="form-error">{error}</p>}
 
         <button type="submit" className="btn-mono" disabled={busy}>
-          {busy ? "Preparing…" : "Upload"}
+          {busy ? "Converting…" : "Upload"}
         </button>
       </form>
     </div>
